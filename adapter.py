@@ -6,7 +6,7 @@ import requests as requests
 from threading import Thread
 
 from engine import run_engine
-from db_driver import get_endpoints
+from endpoint import get_endpoints
 
 
 if __name__ == '__main__':
@@ -29,14 +29,17 @@ if __name__ == '__main__':
     ground_truth_csv_file_path = os.path.join(payload_dir, os.path.basename(ground_truth_csv))
     shutil.make_archive(raw_images_zip_file_path, 'zip', raw_dir)
     shutil.copy(ground_truth_csv, ground_truth_csv_file_path)
-    shutil.make_archive('payload', 'zip', payload_dir)
+    work_dir = tempfile.mkdtemp()
+    payload_zip_file_path = os.path.join(work_dir, 'payload')
+    shutil.make_archive(payload_zip_file_path, 'zip', payload_dir)
 
     shutil.rmtree(payload_dir)
-    files = {'payload': open('payload.zip', 'rb')}
+    files = {'payload': open(payload_zip_file_path + '.zip', 'rb')}
     endpoints = get_endpoints()
     for endpoint in endpoints:
         r = requests.post(endpoint, files=files)
         job_id = r.text
-        thread = Thread(target=run_engine, args=(job_id,))
+        thread = Thread(target=run_engine, args=(job_id, endpoint))
         thread.start()
         thread.join()
+    shutil.rmtree(work_dir)
