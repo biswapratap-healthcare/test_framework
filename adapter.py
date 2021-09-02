@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import tempfile
@@ -26,7 +27,7 @@ if __name__ == '__main__':
 
     payload_dir = tempfile.mkdtemp()
     raw_images_zip_file_path = os.path.join(payload_dir, 'raw_images')
-    ground_truth_csv_file_path = os.path.join(payload_dir, os.path.basename(ground_truth_csv))
+    ground_truth_csv_file_path = os.path.join(payload_dir, 'gt.csv')
     shutil.make_archive(raw_images_zip_file_path, 'zip', raw_dir)
     shutil.copy(ground_truth_csv, ground_truth_csv_file_path)
     work_dir = tempfile.mkdtemp()
@@ -38,8 +39,8 @@ if __name__ == '__main__':
     endpoints = get_endpoints()
     for endpoint in endpoints:
         r = requests.post(endpoint, files=files)
-        job_id = r.text
+        job_id = json.loads(r.text)['status']
         thread = Thread(target=run_engine, args=(job_id, endpoint))
         thread.start()
         thread.join()
-    shutil.rmtree(work_dir)
+    # shutil.rmtree(work_dir)
