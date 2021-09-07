@@ -1,13 +1,11 @@
-import json
 import os
 import shutil
 import tempfile
 import argparse
-import requests as requests
 from threading import Thread
 
-from engine import run_engine
-from endpoint import get_endpoints
+from endpoints import endpoints
+from utils import current_milli_time
 
 
 if __name__ == '__main__':
@@ -34,13 +32,10 @@ if __name__ == '__main__':
     payload_zip_file_path = os.path.join(work_dir, 'payload')
     shutil.make_archive(payload_zip_file_path, 'zip', payload_dir)
 
-    shutil.rmtree(payload_dir)
-    files = {'payload': open(payload_zip_file_path + '.zip', 'rb')}
-    endpoints = get_endpoints()
-    for endpoint in endpoints:
-        r = requests.post(endpoint, files=files)
-        job_id = json.loads(r.text)['status']
-        thread = Thread(target=run_engine, args=(job_id, endpoint))
+    for k, v in endpoints.items():
+        destination_dir = k
+        thread = Thread(target=v, args=(destination_dir, payload_zip_file_path + '.zip'))
         thread.start()
         thread.join()
-    # shutil.rmtree(work_dir)
+    shutil.rmtree(payload_dir)
+    shutil.rmtree(work_dir)
