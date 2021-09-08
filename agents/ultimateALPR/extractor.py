@@ -7,14 +7,16 @@ import pandas as pd
 from PIL import Image
 
 
-def run_extractor(destination_dir, payload):
+def run_ultimate_alpr(destination_dir, payload):
     payload_root_dir = tempfile.mkdtemp()
     with zipfile.ZipFile(payload, 'r') as zip_ref:
         zip_ref.extractall(payload_root_dir)
     raw_images_zip_path = os.path.join(payload_root_dir, 'raw_images.zip')
     gt_csv_file_path = os.path.join(payload_root_dir, 'gt.csv')
     df = pd.read_csv(gt_csv_file_path)
+    df["ID"] = ""
     df["OCR"] = ""
+    df["Confidence"] = ""
     raw_images_dir = tempfile.mkdtemp()
     with zipfile.ZipFile(raw_images_zip_path, 'r') as zip_ref:
         zip_ref.extractall(raw_images_dir)
@@ -32,7 +34,10 @@ def run_extractor(destination_dir, payload):
             json_string = lines[1][34:]
             json_obj = json.loads(json_string)
             ocr = json_obj['plates'][0]['text']
+            confidence = max(json_obj['plates'][0]['confidences'])
+            df.at[idx, "ID"] = ''.join(image.split('.')[:-1])
             df.at[idx, "OCR"] = ocr
+            df.at[idx, "Confidence"] = str(confidence)
             roi = json_obj['plates'][0]['warpedBox']
             im = Image.open(img_path)
             im = im.crop((roi[0], roi[1], roi[4], roi[5]))
